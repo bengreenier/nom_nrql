@@ -1,0 +1,1 @@
+SELECT apdex(duration, t: 0.4) FROM Transaction WHERE customerName = 'x' SINCE 1 day ago

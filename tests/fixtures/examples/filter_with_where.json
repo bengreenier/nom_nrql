@@ -1,0 +1,26 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "filter",
+          "args": [
+            {
+              "name": "count",
+              "args": [null]
+            },
+            {
+              "attribute": { "name": "awsAPI" },
+              "op": { "op": "Eq" },
+              "values": [{ "type": "String", "value": "dynamodb" }]
+            }
+          ],
+          "alias": "DynamoDB"
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Public_APICall"] },
+  "since": { "variant": "Relative", "n": 1, "unit": "day" }
+}

@@ -1,0 +1,1 @@
+SELECT count(*) FROM Transaction SINCE 60 minutes ago FACET appName TIMESERIES 1 minute EXTRAPOLATE

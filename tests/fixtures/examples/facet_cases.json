@@ -1,0 +1,36 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "count",
+          "args": [null],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Public_APICall"] },
+  "facet": {
+    "attributes": [
+      [
+        {
+          "condition": {
+            "attribute": { "name": "http.url" },
+            "op": { "op": "Like" },
+            "values": [{ "type": "String", "value": "%amazon%" }]
+          }
+        },
+        {
+          "condition": {
+            "attribute": { "name": "http.url" },
+            "op": { "op": "Like" },
+            "values": [{ "type": "String", "value": "%google%" }]
+          }
+        }
+      ]
+    ]
+  },
+  "since": { "variant": "Relative", "n": 1, "unit": "day" }
+}

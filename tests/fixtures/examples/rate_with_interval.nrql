@@ -1,0 +1,1 @@
+SELECT rate(count(*), 5 minutes) FROM Public_APICall SINCE 1 hour ago

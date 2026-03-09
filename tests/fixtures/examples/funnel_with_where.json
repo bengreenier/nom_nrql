@@ -1,0 +1,28 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "funnel",
+          "args": [
+            { "name": "awsAPI" },
+            {
+              "attribute": { "name": "http.url" },
+              "op": { "op": "Like" },
+              "values": [{ "type": "String", "value": "%.amazonaws.com" }]
+            },
+            {
+              "attribute": { "name": "http.url" },
+              "op": { "op": "Like" },
+              "values": [{ "type": "String", "value": "%.us-west%" }]
+            }
+          ],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Public_APICall"] },
+  "since": { "variant": "Relative", "n": 1, "unit": "week" }
+}

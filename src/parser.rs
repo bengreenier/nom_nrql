@@ -81,6 +81,46 @@ fn select_arg(i: &str) -> Res<SelectArg> {
     )).parse(i)
 }
 
+/// TimeInterval: number time_unit (no "ago")
+fn time_interval_arg(i: &str) -> Res<SelectArg> {
+    let (i, _) = w(i)?;
+    map(
+        pair(lexer::number_str, time_unit),
+        |(s, unit)| {
+            let n: u64 = s.trim().parse().unwrap_or(0);
+            SelectArg::TimeInterval(TimeInterval { n, unit })
+        },
+    ).parse(i)
+}
+
+/// FunctionArg: named arg | WHERE condition | time interval | select_arg
+fn function_arg(i: &str) -> Res<SelectArg> {
+    let (i, _) = w(i)?;
+    alt((
+        // Named argument: ident ':' select_arg
+        map(
+            tuple((
+                map(lexer::identifier, |s: &str| s.to_string()),
+                preceded(w, char(':')),
+                preceded(w, select_arg),
+            )),
+            |(name, _, value)| SelectArg::Named {
+                name,
+                value: Box::new(value),
+            },
+        ),
+        // WHERE condition: WHERE condition
+        map(
+            preceded(lexer::keyword("WHERE"), preceded(w, condition)),
+            SelectArg::WhereCondition,
+        ),
+        // Time interval: number time_unit (try before literal/attribute so "5 minutes" is one arg)
+        time_interval_arg,
+        // Fallback to regular select_arg
+        select_arg,
+    )).parse(i)
+}
+
 /// FunctionCall: Ident ( ( * | ArgList ) )
 #[instrument(skip(i), fields(len = i.len()))]
 fn function_call(i: &str) -> Res<FunctionCall> {
@@ -91,7 +131,7 @@ fn function_call(i: &str) -> Res<FunctionCall> {
         char('('),
         alt((
             value(vec![SelectArg::Wildcard], preceded(w, tag("*"))),
-            separated_list0(preceded(w, char(',')), select_arg),
+            separated_list0(preceded(w, char(',')), function_arg),
         )),
         char(')'),
     ).parse(i)?;
@@ -114,7 +154,7 @@ fn select_item(i: &str) -> Res<SelectItem> {
                                 char('('),
                                 alt((
                                     value(vec![SelectArg::Wildcard], preceded(w, tag("*"))),
-                                    separated_list0(preceded(w, char(',')), select_arg),
+                                    separated_list0(preceded(w, char(',')), function_arg),
                                 )),
                                 char(')'),
                             ),
@@ -158,7 +198,7 @@ fn select_item_inner(i: &str) -> Res<SelectItem> {
                     char('('),
                     alt((
                         value(vec![SelectArg::Wildcard], preceded(w, tag("*"))),
-                        separated_list0(preceded(w, char(',')), select_arg),
+                        separated_list0(preceded(w, char(',')), function_arg),
                     )),
                     char(')'),
                 ),
@@ -374,17 +414,44 @@ fn timeseries_clause(i: &str) -> Res<TimeseriesClause> {
     let (i, _) = lexer::keyword("TIMESERIES").parse(i)?;
     let (i, _) = w(i)?;
     // Bare TIMESERIES (no AUTO or interval) is valid in NRQL and means auto bucketing. Try interval before success so "TIMESERIES 1 hour" parses.
-    alt((
-        value(TimeseriesClause::Auto, lexer::keyword("AUTO")),
+    let (i, kind) = alt((
+        value(TimeseriesKind::Auto, lexer::keyword("AUTO")),
         map(
             pair(lexer::number_str, time_unit),
             |(s, unit)| {
                 let n: u64 = s.trim().parse().unwrap_or(0);
-                TimeseriesClause::Interval { n, unit }
+                TimeseriesKind::Interval { n, unit }
             },
         ),
-        value(TimeseriesClause::Auto, nom::combinator::success(())),
-    )).parse(i)
+        value(TimeseriesKind::Auto, nom::combinator::success(())),
+    )).parse(i)?;
+    let (i, _) = w(i)?;
+    let (i, extrapolate) = opt(preceded(w, lexer::keyword("EXTRAPOLATE"))).parse(i)?;
+    Ok((
+        i,
+        TimeseriesClause {
+            kind,
+            extrapolate: extrapolate.is_some(),
+        },
+    ))
+}
+
+#[instrument(skip(i), fields(len = i.len()))]
+fn facet_case(i: &str) -> Res<FacetCase> {
+    let (i, _) = w(i)?;
+    let (i, _) = lexer::keyword("WHERE").parse(i)?;
+    let (i, condition) = preceded(w, condition).parse(i)?;
+    let (i, alias) = opt(preceded(
+        tuple((w, lexer::keyword("AS"), w)),
+        lexer::string_literal,
+    )).parse(i)?;
+    Ok((
+        i,
+        FacetCase {
+            condition,
+            alias,
+        },
+    ))
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
@@ -431,7 +498,22 @@ fn order_by_clause(i: &str) -> Res<OrderByClause> {
 #[instrument(skip(i), fields(len = i.len()))]
 fn facet_clause(i: &str) -> Res<FacetClause> {
     let (i, _) = lexer::keyword("FACET").parse(i)?;
-    let (i, attributes) = separated_list0(preceded(w, char(',')), facet_item).parse(i)?;
+    let (i, _) = w(i)?;
+    // Try FACET CASES(...) before regular facet items
+    let (i, attributes) = alt((
+        map(
+            preceded(
+                lexer::keyword("CASES"),
+                delimited(
+                    preceded(w, char('(')),
+                    separated_list0(preceded(w, char(',')), facet_case),
+                    preceded(w, char(')')),
+                ),
+            ),
+            |cases| vec![FacetItem::Cases(cases)],
+        ),
+        separated_list0(preceded(w, char(',')), facet_item),
+    )).parse(i)?;
     let (i, order_by) = opt(preceded(w, order_by_clause)).parse(i)?;
     Ok((
         i,

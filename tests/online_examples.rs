@@ -27,6 +27,12 @@ const EXAMPLES_TO_TRY: &[(&str, &str)] = &[
     ("where numeric", "SELECT * FROM Transaction WHERE duration > 1000 SINCE 1 day ago"),
     ("apdex two args", "SELECT apdex(duration, 0.4) FROM Transaction SINCE 1 day ago"),
     ("multiple event types", "FROM Transaction, PageView SELECT count(*) SINCE 3 days ago"),
+    ("apdex named arg", "SELECT apdex(duration, t: 0.4) FROM Transaction WHERE customerName = 'x' SINCE 1 day ago"),
+    ("filter with WHERE", "SELECT filter(count(*), WHERE awsAPI = 'dynamodb') AS 'DynamoDB' FROM Public_APICall SINCE 1 day ago"),
+    ("rate with interval", "SELECT rate(count(*), 5 minutes) FROM Public_APICall SINCE 1 hour ago"),
+    ("funnel with WHERE", "SELECT funnel(awsAPI, WHERE http.url LIKE '%.amazonaws.com', WHERE http.url LIKE '%.us-west%') FROM Public_APICall SINCE 1 week ago"),
+    ("FACET CASES", "SELECT count(*) FROM Public_APICall FACET CASES(WHERE http.url LIKE '%amazon%', WHERE http.url LIKE '%google%') SINCE 1 day ago"),
+    ("EXTRAPOLATE", "SELECT count(*) FROM Transaction SINCE 60 minutes ago FACET appName TIMESERIES 1 minute EXTRAPOLATE"),
 ];
 
 /// 20 more examples from New Relic intro/process-your-data tutorials and docs.
@@ -78,14 +84,7 @@ const EXAMPLES_TO_TRY_3: &[(&str, &str)] = &[
 ];
 
 /// Examples that use syntax we don't support yet — parse expected to fail.
-const EXPECTED_FAILURES: &[(&str, &str)] = &[
-    ("apdex named arg", "SELECT apdex(duration, t: 0.4) FROM Transaction WHERE customerName = 'x' SINCE 1 day ago"),
-    ("filter with WHERE", "SELECT filter(count(*), WHERE awsAPI = 'dynamodb') AS 'DynamoDB' FROM Public_APICall SINCE 1 day ago"),
-    ("rate with interval", "SELECT rate(count(*), 5 minutes) FROM Public_APICall SINCE 1 hour ago"),
-    ("funnel with WHERE", "SELECT funnel(awsAPI, WHERE http.url LIKE '%.amazonaws.com', WHERE http.url LIKE '%.us-west%') FROM Public_APICall SINCE 1 week ago"),
-    ("FACET CASES", "SELECT count(*) FROM Public_APICall FACET CASES(WHERE http.url LIKE '%amazon%', WHERE http.url LIKE '%google%') SINCE 1 day ago"),
-    ("EXTRAPOLATE", "SELECT count(*) FROM Transaction SINCE 60 minutes ago FACET appName TIMESERIES 1 minute EXTRAPOLATE"),
-];
+const EXPECTED_FAILURES: &[(&str, &str)] = &[];
 
 #[test]
 fn try_online_examples() {

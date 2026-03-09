@@ -1,0 +1,26 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "count",
+          "args": [null],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Transaction"] },
+  "facet": {
+    "attributes": [{ "name": "appName" }],
+    "order_by": null
+  },
+  "since": { "variant": "Relative", "n": 60, "unit": "minute" },
+  "timeseries": {
+    "variant": "Interval",
+    "n": 1,
+    "unit": "minute",
+    "extrapolate": true
+  }
+}
