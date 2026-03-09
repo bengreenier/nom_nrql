@@ -1,0 +1,10 @@
+{
+  "select": { "items": [{ "type": "Wildcard" }] },
+  "from": { "event_types": ["Transaction"] },
+  "where": {
+    "conditions": [
+      { "attribute": { "name": "error" }, "op": { "op": "IsNotNull" }, "values": null }
+    ]
+  },
+  "since": { "variant": "Relative", "n": 1, "unit": "hour" }
+}

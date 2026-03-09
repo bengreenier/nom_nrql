@@ -1,0 +1,12 @@
+{
+  "select": { "items": [{ "type": "Function", "value": { "name": "count", "args": [null], "alias": null } }] },
+  "from": { "event_types": ["Transaction"] },
+  "facet": {
+    "attributes": [{ "name": "appName" }],
+    "order_by": {
+      "items": [{ "attribute_or_function": { "name": "appName" }, "direction": "DESC" }],
+      "limit": 5
+    }
+  },
+  "since": { "variant": "Relative", "n": 1, "unit": "week" }
+}

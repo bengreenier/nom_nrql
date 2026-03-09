@@ -1,0 +1,1 @@
+SELECT count(*), average(duration), max(duration) FROM Transaction SINCE 12 hours ago

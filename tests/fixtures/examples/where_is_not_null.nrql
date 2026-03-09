@@ -1,0 +1,1 @@
+SELECT * FROM Transaction WHERE error IS NOT NULL SINCE 1 hour ago

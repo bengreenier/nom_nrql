@@ -1,0 +1,17 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "uniqueCount",
+          "args": [{ "name": "uuid" }],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["MobileSession"] },
+  "facet": { "attributes": [{ "name": "osVersion" }], "order_by": null },
+  "since": { "variant": "Relative", "n": 7, "unit": "day" }
+}

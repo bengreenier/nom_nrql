@@ -1,0 +1,6 @@
+{
+  "select": { "items": [{ "type": "Wildcard" }] },
+  "from": { "event_types": ["Transaction"] },
+  "since": { "variant": "Relative", "n": 2, "unit": "day" },
+  "until": { "variant": "Relative", "n": 1, "unit": "day" }
+}

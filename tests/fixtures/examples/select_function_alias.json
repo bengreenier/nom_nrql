@@ -1,0 +1,16 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "count",
+          "args": [null],
+          "alias": "Total Events"
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Transaction"] },
+  "since": { "variant": "Relative", "n": 1, "unit": "hour" }
+}

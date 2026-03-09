@@ -1,0 +1,17 @@
+{
+  "select": { "items": [{ "type": "Wildcard" }] },
+  "from": { "event_types": ["Log"] },
+  "where": {
+    "conditions": [
+      {
+        "attribute": { "name": "level" },
+        "op": { "op": "In" },
+        "values": [
+          {"type": "String", "value": "ERROR"},
+          {"type": "String", "value": "WARN"}
+        ]
+      }
+    ]
+  },
+  "since": { "variant": "Relative", "n": 1, "unit": "day" }
+}

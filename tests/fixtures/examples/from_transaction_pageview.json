@@ -1,0 +1,11 @@
+{
+  "select": {
+    "items": [
+      { "type": "Function", "value": { "name": "count", "args": [null], "alias": null } },
+      { "type": "Function", "value": { "name": "average", "args": [{ "name": "duration" }], "alias": null } }
+    ]
+  },
+  "from": { "event_types": ["Transaction", "PageView"] },
+  "limit": 50,
+  "since": { "variant": "Relative", "n": 3, "unit": "day" }
+}

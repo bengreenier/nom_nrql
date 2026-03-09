@@ -1,0 +1,1 @@
+FROM Log SELECT message, timestamp LIMIT 100 OFFSET 50 SINCE 2 hours ago

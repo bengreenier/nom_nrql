@@ -1,0 +1,17 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "sum",
+          "args": [{ "name": "foo.count" }],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Metric"] },
+  "since": { "variant": "Absolute", "value": "2023-12-20T00:04Z" },
+  "until": { "variant": "Absolute", "value": "2023-12-22T00:03Z" }
+}

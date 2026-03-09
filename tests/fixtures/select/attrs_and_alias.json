@@ -1,0 +1,9 @@
+{
+  "select": {
+    "items": [
+      { "type": "Attr", "value": { "name": "duration" } },
+      { "type": "Attr", "value": { "name": "name" } }
+    ]
+  },
+  "from": { "event_types": ["Transaction"] }
+}

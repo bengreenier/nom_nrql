@@ -1,0 +1,1 @@
+SELECT uniqueCount(uuid) FROM MobileSession FACET osVersion SINCE 7 days ago

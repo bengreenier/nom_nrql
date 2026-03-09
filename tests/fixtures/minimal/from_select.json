@@ -1,0 +1,10 @@
+{
+  "select": {
+    "items": [
+      { "type": "Wildcard" }
+    ]
+  },
+  "from": {
+    "event_types": ["Transaction"]
+  }
+}

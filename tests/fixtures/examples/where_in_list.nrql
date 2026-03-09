@@ -1,0 +1,1 @@
+SELECT * FROM Log WHERE level IN ('ERROR', 'WARN') SINCE 1 day ago

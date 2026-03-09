@@ -1,0 +1,7 @@
+{
+  "select": { "items": [{ "type": "Function", "value": { "name": "count", "args": [null], "alias": null } }] },
+  "from": { "event_types": ["PageView"] },
+  "since": { "variant": "Relative", "n": 1, "unit": "day" },
+  "compare_with": { "variant": "Relative", "n": 1, "unit": "day" },
+  "timeseries": { "variant": "Auto" }
+}

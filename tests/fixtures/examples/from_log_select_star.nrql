@@ -1,0 +1,1 @@
+FROM Log SELECT * SINCE 2 days ago

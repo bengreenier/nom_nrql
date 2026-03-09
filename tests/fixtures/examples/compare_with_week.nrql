@@ -1,0 +1,1 @@
+SELECT uniqueCount(session) FROM PageView SINCE 1 week ago COMPARE WITH 1 week ago

@@ -1,0 +1,17 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "uniqueCount",
+          "args": [{ "name": "session" }],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["PageView"] },
+  "since": { "variant": "Relative", "n": 1, "unit": "week" },
+  "compare_with": { "variant": "Relative", "n": 1, "unit": "week" }
+}

@@ -1,0 +1,16 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "average",
+          "args": [{ "name": "duration" }],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Transaction"] },
+  "since": { "variant": "Relative", "n": 12, "unit": "hour" }
+}

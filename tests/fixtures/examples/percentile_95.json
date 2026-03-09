@@ -1,0 +1,16 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "percentile",
+          "args": [{ "name": "duration" }, {"type": "Number", "value": 95}],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Transaction"] },
+  "since": { "variant": "Relative", "n": 1, "unit": "day" }
+}

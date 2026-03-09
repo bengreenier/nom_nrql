@@ -1,0 +1,1 @@
+SELECT * FROM Transaction WHERE duration > 1000 SINCE 1 day ago

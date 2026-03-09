@@ -1,0 +1,10 @@
+{
+  "select": { "items": [{ "type": "Wildcard" }] },
+  "from": { "event_types": ["Transaction"] },
+  "where": {
+    "conditions": [
+      { "attribute": { "name": "duration" }, "op": { "op": "Gt" }, "values": [{"type": "Number", "value": 1000}] }
+    ]
+  },
+  "since": { "variant": "Relative", "n": 1, "unit": "day" }
+}

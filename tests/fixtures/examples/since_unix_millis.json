@@ -1,0 +1,6 @@
+{
+  "select": { "items": [{ "type": "Wildcard" }] },
+  "from": { "event_types": ["Log"] },
+  "since": { "variant": "UnixMillis", "value": 1700000000000 },
+  "until": { "variant": "UnixMillis", "value": 1700086400000 }
+}

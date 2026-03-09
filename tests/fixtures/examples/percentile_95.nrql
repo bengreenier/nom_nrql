@@ -1,0 +1,1 @@
+SELECT percentile(duration, 95) FROM Transaction SINCE 1 day ago

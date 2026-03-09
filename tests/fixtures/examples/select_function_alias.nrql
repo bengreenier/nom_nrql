@@ -1,0 +1,1 @@
+SELECT count(*) AS 'Total Events' FROM Transaction SINCE 1 hour ago

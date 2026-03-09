@@ -1,0 +1,12 @@
+{
+  "select": {
+    "items": [
+      { "type": "Attr", "value": { "name": "message" } },
+      { "type": "Attr", "value": { "name": "timestamp" } }
+    ]
+  },
+  "from": { "event_types": ["Log"] },
+  "limit": 100,
+  "offset": 50,
+  "since": { "variant": "Relative", "n": 2, "unit": "hour" }
+}

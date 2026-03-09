@@ -1,0 +1,1 @@
+SELECT count(*) FROM Transaction FACET appName ORDER BY appName DESC LIMIT 5 SINCE 1 week ago

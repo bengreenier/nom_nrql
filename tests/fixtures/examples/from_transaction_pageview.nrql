@@ -1,0 +1,1 @@
+FROM Transaction, PageView SELECT count(*), average(duration) LIMIT 50 SINCE 3 days ago

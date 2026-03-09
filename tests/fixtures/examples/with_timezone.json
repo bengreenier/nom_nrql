@@ -1,0 +1,6 @@
+{
+  "select": { "items": [{ "type": "Function", "value": { "name": "count", "args": [null], "alias": null } }] },
+  "from": { "event_types": ["Transaction"] },
+  "with_timezone": "America/New_York",
+  "since": { "variant": "Relative", "n": 1, "unit": "day" }
+}

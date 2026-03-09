@@ -1,0 +1,1 @@
+SELECT average(duration) FROM Transaction SINCE 12 hours ago
