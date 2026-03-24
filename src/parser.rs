@@ -1,5 +1,10 @@
 //! Streaming NRQL parser using nom streaming combinators.
 
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
 use crate::ast::*;
 use crate::error::ParseError;
 use crate::lexer;

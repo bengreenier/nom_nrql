@@ -1,6 +1,7 @@
 //! Streaming lexer primitives for NRQL: comments, whitespace, identifiers, literals.
 //! All parsers use nom's streaming modules so they return Incomplete when more input is needed.
 
+use alloc::string::{String, ToString};
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;

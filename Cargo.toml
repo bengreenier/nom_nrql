@@ -14,10 +14,15 @@ exclude = ["/.github", "/.cursor"]
 [package.metadata.docs.rs]
 all-features = true
 
+[features]
+default = ["std"]
+alloc = ["nom/alloc", "serde/alloc"]
+std = ["alloc", "nom/std", "serde/std", "tracing/std"]
+
 [dependencies]
-nom = "8.0.0"
-serde = { version = "1.0", features = ["derive"] }
-tracing = "0.1.44"
+nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+tracing = { version = "0.1.44", default-features = false, features = ["attributes"] }
 
 [dev-dependencies]
 serde_json = "1.0"
