@@ -7,7 +7,6 @@ use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
 use nom::bytes::complete::tag as tag_complete;
-use nom::bytes::streaming::tag;
 use nom::character::complete::char as char_complete;
 use nom::character::complete::satisfy;
 use nom::character::streaming::char;
