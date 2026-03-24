@@ -1,15 +1,15 @@
 //! Streaming lexer primitives for NRQL: comments, whitespace, identifiers, literals.
 //! All parsers use nom's streaming modules so they return Incomplete when more input is needed.
 
+use nom::IResult;
+use nom::Parser;
 use nom::branch::alt;
-use tracing::instrument;
 use nom::bytes::streaming::{tag, take_until};
 use nom::character::streaming::{char, multispace0, multispace1, satisfy};
 use nom::combinator::{map, opt, recognize};
 use nom::multi::many_m_n;
 use nom::sequence::{delimited, pair, preceded};
-use nom::Parser;
-use nom::IResult;
+use tracing::instrument;
 
 /// Skip optional whitespace (streaming). Bounded so we don't return Incomplete at EOI.
 #[instrument(skip(i), fields(len = i.len()))]
@@ -159,7 +159,10 @@ mod tests {
     #[test]
     fn test_identifier() {
         assert_eq!(identifier("appId "), Ok((" ", "appId")));
-        assert_eq!(identifier("request.headers.x "), Ok((" ", "request.headers.x")));
+        assert_eq!(
+            identifier("request.headers.x "),
+            Ok((" ", "request.headers.x"))
+        );
     }
 
     #[traced_test]

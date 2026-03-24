@@ -53,8 +53,9 @@ pub enum SelectArg {
     #[serde(alias = "null")]
     Wildcard,
     Literal(Literal),
-    Attribute(AttributeRef),
+    /// Before Attribute: untagged serde must prefer `{ name, args }` as FunctionCall, not AttributeRef with ignored `args`.
     Function(FunctionCall),
+    /// Before Attribute: `{ name, value }` must not deserialize as AttributeRef (unknown fields ignored).
     Named {
         name: String,
         #[serde(rename = "value")]
@@ -62,6 +63,7 @@ pub enum SelectArg {
     },
     WhereCondition(Condition),
     TimeInterval(TimeInterval),
+    Attribute(AttributeRef),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -211,7 +213,7 @@ pub enum NumberLiteral {
 pub struct TimeseriesClause {
     #[serde(flatten)]
     pub kind: TimeseriesKind,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub extrapolate: bool,
 }
 
