@@ -187,7 +187,11 @@ fn select_item_inner(i: &str) -> Res<'_, SelectItem> {
                     char_complete(')'),
                 ),
                 opt(preceded(
-                    (w, complete(lexer::keyword("AS")), w),
+                    (
+                        lexer::ws_complete,
+                        complete(lexer::keyword("AS")),
+                        lexer::ws_complete,
+                    ),
                     lexer::string_literal,
                 )),
             ),
