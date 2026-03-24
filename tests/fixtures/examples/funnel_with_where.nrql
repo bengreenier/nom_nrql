@@ -1,0 +1,1 @@
+SELECT funnel(awsAPI, WHERE http.url LIKE '%.amazonaws.com', WHERE http.url LIKE '%.us-west%') FROM Public_APICall SINCE 1 week ago

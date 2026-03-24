@@ -1,0 +1,1 @@
+SELECT filter(count(*), WHERE awsAPI = 'dynamodb') AS 'DynamoDB' FROM Public_APICall SINCE 1 day ago

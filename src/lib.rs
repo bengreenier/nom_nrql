@@ -21,5 +21,4 @@ mod tests {
         assert_eq!(q.from.event_types, ["Transaction"]);
         assert!(matches!(&q.select.items[0], SelectItem::Wildcard));
     }
-
 }

@@ -53,8 +53,17 @@ pub enum SelectArg {
     #[serde(alias = "null")]
     Wildcard,
     Literal(Literal),
-    Attribute(AttributeRef),
+    /// Before Attribute: untagged serde must prefer `{ name, args }` as FunctionCall, not AttributeRef with ignored `args`.
     Function(FunctionCall),
+    /// Before Attribute: `{ name, value }` must not deserialize as AttributeRef (unknown fields ignored).
+    Named {
+        name: String,
+        #[serde(rename = "value")]
+        value: Box<SelectArg>,
+    },
+    WhereCondition(Condition),
+    TimeInterval(TimeInterval),
+    Attribute(AttributeRef),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -116,6 +125,14 @@ pub struct FacetClause {
 pub enum FacetItem {
     Attr(AttributeRef),
     Function(FunctionCall),
+    Cases(Vec<FacetCase>),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FacetCase {
+    pub condition: Condition,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alias: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -156,6 +173,12 @@ pub enum TimeExpr {
     Now,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimeInterval {
+    pub n: u64,
+    pub unit: TimeUnit,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TimeUnit {
@@ -187,8 +210,20 @@ pub enum NumberLiteral {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimeseriesClause {
+    #[serde(flatten)]
+    pub kind: TimeseriesKind,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub extrapolate: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "variant")]
-pub enum TimeseriesClause {
+pub enum TimeseriesKind {
     Auto,
     Interval { n: u64, unit: TimeUnit },
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
 }

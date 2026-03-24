@@ -1,0 +1,25 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "rate",
+          "args": [
+            {
+              "name": "count",
+              "args": [null]
+            },
+            {
+              "n": 5,
+              "unit": "minute"
+            }
+          ],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Public_APICall"] },
+  "since": { "variant": "Relative", "n": 1, "unit": "hour" }
+}

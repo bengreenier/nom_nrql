@@ -1,0 +1,31 @@
+{
+  "select": {
+    "items": [
+      {
+        "type": "Function",
+        "value": {
+          "name": "apdex",
+          "args": [
+            { "name": "duration" },
+            {
+              "name": "t",
+              "value": { "type": "Number", "value": 0.4 }
+            }
+          ],
+          "alias": null
+        }
+      }
+    ]
+  },
+  "from": { "event_types": ["Transaction"] },
+  "where": {
+    "conditions": [
+      {
+        "attribute": { "name": "customerName" },
+        "op": { "op": "Eq" },
+        "values": [{ "type": "String", "value": "x" }]
+      }
+    ]
+  },
+  "since": { "variant": "Relative", "n": 1, "unit": "day" }
+}

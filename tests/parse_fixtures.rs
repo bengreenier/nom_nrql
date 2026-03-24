@@ -1,6 +1,6 @@
 //! Fixture-based tests: for each `*.nrql` in tests/fixtures, parse and compare to matching `*.json` expected AST.
 
-use nom_nrql::{parse_nrql, Query};
+use nom_nrql::{Query, parse_nrql};
 use std::fs;
 use std::path::Path;
 
@@ -53,15 +53,12 @@ fn run_fixture(nrql_path: &Path) {
 
     let json_str = fs::read_to_string(&json_path).expect("read json");
     let expected: Query = serde_json::from_str(&json_str).unwrap_or_else(|e| {
-        panic!(
-            "Invalid expected JSON for {}: {}",
-            json_path.display(),
-            e
-        );
+        panic!("Invalid expected JSON for {}: {}", json_path.display(), e);
     });
 
     assert_eq!(
-        parsed, expected,
+        parsed,
+        expected,
         "Fixture {}: parsed AST != expected JSON",
         nrql_path.display()
     );
@@ -82,10 +79,17 @@ fn run_error_fixtures() {
             let nrql = fs::read_to_string(&path).expect("read nrql");
             let nrql = nrql.trim_end();
             let err = parse_nrql(nrql);
-            assert!(err.is_err(), "Expected parse error for {}: got Ok(_)", path.display());
+            assert!(
+                err.is_err(),
+                "Expected parse error for {}: got Ok(_)",
+                path.display()
+            );
             let err_path = path.with_extension("err");
             if err_path.exists() {
-                let expected_sub = fs::read_to_string(&err_path).expect("read err").trim().to_string();
+                let expected_sub = fs::read_to_string(&err_path)
+                    .expect("read err")
+                    .trim()
+                    .to_string();
                 let got = err.unwrap_err();
                 assert!(
                     got.message.contains(&expected_sub),

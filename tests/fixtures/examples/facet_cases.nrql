@@ -1,0 +1,1 @@
+SELECT count(*) FROM Public_APICall FACET CASES(WHERE http.url LIKE '%amazon%', WHERE http.url LIKE '%google%') SINCE 1 day ago
