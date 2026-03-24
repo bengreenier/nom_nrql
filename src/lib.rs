@@ -1,4 +1,7 @@
 //! NRQL (New Relic Query Language) streaming parser built with nom.
+#![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
 
 pub mod ast;
 pub mod error;

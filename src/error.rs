@@ -1,6 +1,7 @@
 //! Parse error type for NRQL parser.
 
-use std::fmt;
+use alloc::string::String;
+use core::fmt;
 
 /// Error returned when NRQL parsing fails.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,6 +22,7 @@ impl fmt::Display for ParseError {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for ParseError {}
 
 impl ParseError {

@@ -1,5 +1,8 @@
 //! AST types for NRQL queries.
 
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 /// A complete NRQL query.
