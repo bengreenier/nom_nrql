@@ -61,7 +61,7 @@ dependencies = [
 
 [[package]]
 name = "nom_nrql"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "nom",
  "serde",
