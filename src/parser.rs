@@ -12,24 +12,24 @@ use nom::character::complete::satisfy;
 use nom::character::streaming::char;
 use nom::combinator::{complete, map, map_res, opt, peek, recognize, value};
 use nom::multi::{many_m_n, separated_list0};
-use nom::sequence::{delimited, pair, preceded, tuple};
+use nom::sequence::{delimited, pair, preceded};
 use tracing::instrument;
 
 type Res<'a, O> = IResult<&'a str, O, nom::error::Error<&'a str>>;
 
-fn w(i: &str) -> Res<&str> {
+fn w(i: &str) -> Res<'_, &str> {
     lexer::ws(i)
 }
 
 /// FROM clause: FROM EventType ( , EventType )*
 #[instrument(skip(i), fields(len = i.len()))]
-fn from_clause(i: &str) -> Res<FromClause> {
+fn from_clause(i: &str) -> Res<'_, FromClause> {
     let (i, _) = lexer::keyword("FROM").parse(i)?;
     let (i, _) = w(i)?;
     let (i, first) = lexer::attr_or_ident(i)?;
     // Use complete() so trailing newline after first event type yields Error (no comma) not Incomplete
     let (i, rest) = nom::multi::many0(preceded(
-        complete(tuple((lexer::ws_complete, char(','), lexer::ws_complete))),
+        complete((lexer::ws_complete, char(','), lexer::ws_complete)),
         lexer::attr_or_ident,
     ))
     .parse(i)?;
@@ -40,7 +40,7 @@ fn from_clause(i: &str) -> Res<FromClause> {
 
 /// Literal: string | number | true | false | null
 #[instrument(skip(i), fields(len = i.len()))]
-fn literal(i: &str) -> Res<Literal> {
+fn literal(i: &str) -> Res<'_, Literal> {
     alt((
         map(lexer::string_literal, Literal::String),
         map(null_kw, |_| Literal::Null),
@@ -51,12 +51,12 @@ fn literal(i: &str) -> Res<Literal> {
     .parse(i)
 }
 
-fn null_kw(i: &str) -> Res<()> {
+fn null_kw(i: &str) -> Res<'_, ()> {
     let (i, _) = lexer::keyword("null").parse(i)?;
     Ok((i, ()))
 }
 
-fn number_literal(i: &str) -> Res<NumberLiteral> {
+fn number_literal(i: &str) -> Res<'_, NumberLiteral> {
     let (i, s) = lexer::number_str(i)?;
     let s = s.trim();
     if let Ok(n) = s.parse::<i64>() {
@@ -72,12 +72,12 @@ fn number_literal(i: &str) -> Res<NumberLiteral> {
 }
 
 /// AttributeRef
-fn attribute_ref(i: &str) -> Res<AttributeRef> {
+fn attribute_ref(i: &str) -> Res<'_, AttributeRef> {
     map(lexer::attr_or_ident, |name| AttributeRef { name }).parse(i)
 }
 
 /// Label for named function args (`name: value`). Excludes `:` so `t: 0.4` is not one identifier.
-fn named_arg_label(i: &str) -> Res<String> {
+fn named_arg_label(i: &str) -> Res<'_, String> {
     map(
         recognize(pair(
             satisfy(|c: char| c.is_ascii_alphabetic() || c == '_'),
@@ -93,7 +93,7 @@ fn named_arg_label(i: &str) -> Res<String> {
 }
 
 /// SelectArg: * | literal | function_call | attribute (function before attribute so `count(*)` in nested args parses as a call, not attr `count`)
-fn select_arg(i: &str) -> Res<SelectArg> {
+fn select_arg(i: &str) -> Res<'_, SelectArg> {
     let (i, _) = w(i)?;
     alt((
         value(SelectArg::Wildcard, preceded(w, tag_complete("*"))),
@@ -105,7 +105,7 @@ fn select_arg(i: &str) -> Res<SelectArg> {
 }
 
 /// TimeInterval: number time_unit (no "ago")
-fn time_interval_arg(i: &str) -> Res<SelectArg> {
+fn time_interval_arg(i: &str) -> Res<'_, SelectArg> {
     let (i, _) = w(i)?;
     map(
         pair(complete(lexer::number_str), complete(time_unit)),
@@ -118,16 +118,16 @@ fn time_interval_arg(i: &str) -> Res<SelectArg> {
 }
 
 /// FunctionArg: named arg | WHERE condition | time interval | select_arg
-fn function_arg(i: &str) -> Res<SelectArg> {
+fn function_arg(i: &str) -> Res<'_, SelectArg> {
     let (i, _) = w(i)?;
     alt((
         // Named argument: ident ':' select_arg
         map(
-            tuple((
+            (
                 named_arg_label,
                 preceded(w, char(':')),
                 preceded(w, select_arg),
-            )),
+            ),
             |(name, _, value)| SelectArg::Named {
                 name,
                 value: Box::new(value),
@@ -148,7 +148,7 @@ fn function_arg(i: &str) -> Res<SelectArg> {
 
 /// FunctionCall: Ident ( ( * | ArgList ) )
 #[instrument(skip(i), fields(len = i.len()))]
-fn function_call(i: &str) -> Res<FunctionCall> {
+fn function_call(i: &str) -> Res<'_, FunctionCall> {
     let (i, _) = w(i)?;
     let (i, name) = map(complete(lexer::identifier), |s: &str| s.to_string()).parse(i)?;
     let (i, _) = w(i)?;
@@ -164,61 +164,14 @@ fn function_call(i: &str) -> Res<FunctionCall> {
     Ok((i, FunctionCall { name, args }))
 }
 
-/// SelectItem: * | ( AttributeRef | FunctionCall ) ( AS string )?
-fn select_item(i: &str) -> Res<SelectItem> {
-    let (i, _) = w(i)?;
-    alt((
-        value(SelectItem::Wildcard, preceded(w, tag_complete("*"))),
-        map(
-            tuple((
-                alt((
-                    map(attribute_ref, SelectItem::Attr),
-                    map(
-                        tuple((
-                            map(lexer::identifier, |s: &str| s.to_string()),
-                            delimited(
-                                char('('),
-                                alt((
-                                    value(
-                                        vec![SelectArg::Wildcard],
-                                        preceded(w, tag_complete("*")),
-                                    ),
-                                    separated_list0(preceded(w, char(',')), function_arg),
-                                )),
-                                char(')'),
-                            ),
-                            opt(preceded(
-                                tuple((w, lexer::keyword("AS"), w)),
-                                lexer::string_literal,
-                            )),
-                        )),
-                        |(name, args, alias)| SelectItem::Function { name, args, alias },
-                    ),
-                )),
-                opt(preceded(
-                    tuple((w, lexer::keyword("AS"), w)),
-                    lexer::string_literal,
-                )),
-            )),
-            |(mut item, alias_opt)| {
-                if let SelectItem::Function { alias, .. } = &mut item {
-                    *alias = alias_opt;
-                }
-                item
-            },
-        ),
-    ))
-    .parse(i)
-}
-
 #[instrument(skip(i), fields(len = i.len()))]
-fn select_item_inner(i: &str) -> Res<SelectItem> {
+fn select_item_inner(i: &str) -> Res<'_, SelectItem> {
     let (i, _) = w(i)?;
     alt((
         value(SelectItem::Wildcard, preceded(w, tag_complete("*"))),
         // Try function before attribute so "count(*)" is not parsed as attr "count"
         map(
-            tuple((
+            (
                 map(complete(lexer::identifier), |s: &str| s.to_string()),
                 delimited(
                     char_complete('('),
@@ -229,10 +182,10 @@ fn select_item_inner(i: &str) -> Res<SelectItem> {
                     char_complete(')'),
                 ),
                 opt(preceded(
-                    tuple((w, complete(lexer::keyword("AS")), w)),
+                    (w, complete(lexer::keyword("AS")), w),
                     lexer::string_literal,
                 )),
-            )),
+            ),
             |(name, args, alias)| SelectItem::Function { name, args, alias },
         ),
         map(attribute_ref, SelectItem::Attr),
@@ -242,7 +195,7 @@ fn select_item_inner(i: &str) -> Res<SelectItem> {
 
 /// SelectClause: SELECT ( * | SelectList )
 #[instrument(skip(i), fields(len = i.len()))]
-fn select_clause(i: &str) -> Res<SelectClause> {
+fn select_clause(i: &str) -> Res<'_, SelectClause> {
     let (i, _) = lexer::keyword("SELECT").parse(i)?;
     let (i, items) = preceded(
         lexer::ws_complete,
@@ -263,7 +216,7 @@ fn select_clause(i: &str) -> Res<SelectClause> {
 
 /// WHERE clause
 #[instrument(skip(i), fields(len = i.len()))]
-fn condition(i: &str) -> Res<Condition> {
+fn condition(i: &str) -> Res<'_, Condition> {
     let (i, _) = w(i)?;
     let (i, attribute) = attribute_ref(i)?;
     let (i, _) = w(i)?;
@@ -279,7 +232,7 @@ fn condition(i: &str) -> Res<Condition> {
     ))
 }
 
-fn value_list_or_single(i: &str) -> Res<Option<Vec<Literal>>> {
+fn value_list_or_single(i: &str) -> Res<'_, Option<Vec<Literal>>> {
     alt((
         map(
             delimited(
@@ -294,7 +247,7 @@ fn value_list_or_single(i: &str) -> Res<Option<Vec<Literal>>> {
     .parse(i)
 }
 
-fn comparison_op(i: &str) -> Res<ComparisonOp> {
+fn comparison_op(i: &str) -> Res<'_, ComparisonOp> {
     let (i, _) = w(i)?;
     alt((
         // complete tags: nested function args use complete(select_item_inner); streaming tag() can fail with Tag/Incomplete.
@@ -306,26 +259,26 @@ fn comparison_op(i: &str) -> Res<ComparisonOp> {
         value(ComparisonOp::Lt, tag_complete("<")),
         value(
             ComparisonOp::IsNotNull,
-            tuple((
+            (
                 lexer::keyword("IS"),
                 w,
                 lexer::keyword("NOT"),
                 w,
                 lexer::keyword("NULL"),
-            )),
+            ),
         ),
         value(
             ComparisonOp::IsNull,
-            tuple((lexer::keyword("IS"), w, lexer::keyword("NULL"))),
+            (lexer::keyword("IS"), w, lexer::keyword("NULL")),
         ),
         value(
             ComparisonOp::NotLike,
-            tuple((lexer::keyword("NOT"), w, lexer::keyword("LIKE"))),
+            (lexer::keyword("NOT"), w, lexer::keyword("LIKE")),
         ),
         value(ComparisonOp::Like, lexer::keyword("LIKE")),
         value(
             ComparisonOp::NotIn,
-            tuple((lexer::keyword("NOT"), w, lexer::keyword("IN"))),
+            (lexer::keyword("NOT"), w, lexer::keyword("IN")),
         ),
         value(ComparisonOp::In, lexer::keyword("IN")),
     ))
@@ -333,11 +286,11 @@ fn comparison_op(i: &str) -> Res<ComparisonOp> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn where_clause(i: &str) -> Res<WhereClause> {
+fn where_clause(i: &str) -> Res<'_, WhereClause> {
     let (i, _) = lexer::keyword("WHERE").parse(i)?;
     let (i, first) = condition(i)?;
     let (i, rest) = nom::multi::many0(preceded(
-        tuple((w, alt((lexer::keyword("AND"), lexer::keyword("OR"))))),
+        (w, alt((lexer::keyword("AND"), lexer::keyword("OR")))),
         condition,
     ))
     .parse(i)?;
@@ -347,7 +300,7 @@ fn where_clause(i: &str) -> Res<WhereClause> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn limit_clause(i: &str) -> Res<u64> {
+fn limit_clause(i: &str) -> Res<'_, u64> {
     let (i, _) = lexer::keyword("LIMIT").parse(i)?;
     let (i, _) = w(i)?;
     let (i, s) = lexer::number_str(i)?;
@@ -359,7 +312,7 @@ fn limit_clause(i: &str) -> Res<u64> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn offset_clause(i: &str) -> Res<u64> {
+fn offset_clause(i: &str) -> Res<'_, u64> {
     let (i, _) = lexer::keyword("OFFSET").parse(i)?;
     let (i, _) = w(i)?;
     let (i, s) = lexer::number_str(i)?;
@@ -370,7 +323,7 @@ fn offset_clause(i: &str) -> Res<u64> {
     Ok((i, n))
 }
 
-fn time_unit(i: &str) -> Res<TimeUnit> {
+fn time_unit(i: &str) -> Res<'_, TimeUnit> {
     let (i, _) = w(i)?;
     // Plural before singular so "days" matches before "day"
     alt((
@@ -398,7 +351,7 @@ fn time_unit(i: &str) -> Res<TimeUnit> {
 
 /// Epoch milliseconds are 13 digits (until year 2286). Only try UnixMillis when we see 13+ digits
 /// so "1700000000000 UNTIL" parses correctly and "1 day ago" is not consumed by this branch.
-fn unix_millis_13plus(i: &str) -> Res<TimeExpr> {
+fn unix_millis_13plus(i: &str) -> Res<'_, TimeExpr> {
     map_res(
         recognize(many_m_n(
             13,
@@ -411,17 +364,17 @@ fn unix_millis_13plus(i: &str) -> Res<TimeExpr> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn time_expr_fixed(i: &str) -> Res<TimeExpr> {
+fn time_expr_fixed(i: &str) -> Res<'_, TimeExpr> {
     let (i, _) = w(i)?;
     alt((
         value(TimeExpr::Now, lexer::keyword("NOW")),
         unix_millis_13plus,
         map(
-            tuple((
+            (
                 lexer::number_str,
                 time_unit,
                 preceded(w, lexer::keyword("ago")),
-            )),
+            ),
             |(s, unit, _)| {
                 let n: u64 = s.trim().parse().unwrap_or(0);
                 TimeExpr::Relative { n, unit }
@@ -439,19 +392,19 @@ fn time_expr_fixed(i: &str) -> Res<TimeExpr> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn since_clause(i: &str) -> Res<TimeExpr> {
+fn since_clause(i: &str) -> Res<'_, TimeExpr> {
     let (i, _) = lexer::keyword("SINCE").parse(i)?;
     time_expr_fixed(i)
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn until_clause(i: &str) -> Res<TimeExpr> {
+fn until_clause(i: &str) -> Res<'_, TimeExpr> {
     let (i, _) = lexer::keyword("UNTIL").parse(i)?;
     time_expr_fixed(i)
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn timeseries_clause(i: &str) -> Res<TimeseriesClause> {
+fn timeseries_clause(i: &str) -> Res<'_, TimeseriesClause> {
     let (i, _) = lexer::keyword("TIMESERIES").parse(i)?;
     let (i, _) = w(i)?;
     // Bare TIMESERIES (no AUTO or interval) is valid in NRQL and means auto bucketing. Try interval before success so "TIMESERIES 1 hour" parses.
@@ -481,12 +434,12 @@ fn timeseries_clause(i: &str) -> Res<TimeseriesClause> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn facet_case(i: &str) -> Res<FacetCase> {
+fn facet_case(i: &str) -> Res<'_, FacetCase> {
     let (i, _) = w(i)?;
     let (i, _) = lexer::keyword("WHERE").parse(i)?;
     let (i, condition) = preceded(w, condition).parse(i)?;
     let (i, alias) = opt(preceded(
-        tuple((w, lexer::keyword("AS"), w)),
+        (w, lexer::keyword("AS"), w),
         lexer::string_literal,
     ))
     .parse(i)?;
@@ -494,7 +447,7 @@ fn facet_case(i: &str) -> Res<FacetCase> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn facet_item(i: &str) -> Res<FacetItem> {
+fn facet_item(i: &str) -> Res<'_, FacetItem> {
     let (i, _) = w(i)?;
     // Try function before attribute so FACET buckets(duration, 400, 10) parses correctly
     alt((
@@ -505,7 +458,7 @@ fn facet_item(i: &str) -> Res<FacetItem> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn order_by_item(i: &str) -> Res<OrderByItem> {
+fn order_by_item(i: &str) -> Res<'_, OrderByItem> {
     let (i, _) = w(i)?;
     // Try function before attribute so ORDER BY count(*) DESC parses correctly
     let (i, attr_or_fn) = alt((
@@ -531,7 +484,7 @@ fn order_by_item(i: &str) -> Res<OrderByItem> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn order_by_clause(i: &str) -> Res<OrderByClause> {
+fn order_by_clause(i: &str) -> Res<'_, OrderByClause> {
     let (i, _) = lexer::keyword("ORDER").parse(i)?;
     let (i, _) = w(i)?;
     let (i, _) = lexer::keyword("BY").parse(i)?;
@@ -541,7 +494,7 @@ fn order_by_clause(i: &str) -> Res<OrderByClause> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn facet_clause(i: &str) -> Res<FacetClause> {
+fn facet_clause(i: &str) -> Res<'_, FacetClause> {
     let (i, _) = lexer::keyword("FACET").parse(i)?;
     let (i, _) = w(i)?;
     // Try FACET CASES(...) before regular facet items
@@ -571,7 +524,7 @@ fn facet_clause(i: &str) -> Res<FacetClause> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn with_timezone_clause(i: &str) -> Res<String> {
+fn with_timezone_clause(i: &str) -> Res<'_, String> {
     let (i, _) = lexer::keyword("WITH").parse(i)?;
     let (i, _) = w(i)?;
     let (i, _) = lexer::keyword("TIMEZONE").parse(i)?;
@@ -584,7 +537,7 @@ fn with_timezone_clause(i: &str) -> Res<String> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn compare_with_clause(i: &str) -> Res<TimeExpr> {
+fn compare_with_clause(i: &str) -> Res<'_, TimeExpr> {
     let (i, _) = lexer::keyword("COMPARE").parse(i)?;
     let (i, _) = w(i)?;
     let (i, _) = lexer::keyword("WITH").parse(i)?;
@@ -605,7 +558,7 @@ enum QueryMod {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn optional_clauses(i: &str) -> Res<Vec<QueryMod>> {
+fn optional_clauses(i: &str) -> Res<'_, Vec<QueryMod>> {
     // Use ws_complete so trailing newline/whitespace doesn't trigger Incomplete from streaming ws
     nom::multi::many0(preceded(
         lexer::ws_complete,
@@ -615,7 +568,7 @@ fn optional_clauses(i: &str) -> Res<Vec<QueryMod>> {
 }
 
 #[instrument(skip(i), fields(len = i.len()))]
-fn optional_clause_inner(i: &str) -> Res<QueryMod> {
+fn optional_clause_inner(i: &str) -> Res<'_, QueryMod> {
     alt((
         map(where_clause, QueryMod::Where),
         map(facet_clause, QueryMod::Facet),
@@ -633,7 +586,7 @@ fn optional_clause_inner(i: &str) -> Res<QueryMod> {
 
 /// Top-level: ( SELECT FROM | FROM SELECT ) OptClauses*
 #[instrument(skip(i), fields(remaining_len = i.len()))]
-fn query_streaming(i: &str) -> Res<Query> {
+fn query_streaming(i: &str) -> Res<'_, Query> {
     let (i, _) = lexer::ws_complete(i)?;
     // Try FROM-first when input starts with "FROM" so "FROM X SELECT count(*)" isn't parsed as SELECT FROM, count(*).
     let (i, (select, from)) = alt((

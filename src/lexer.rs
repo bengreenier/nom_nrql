@@ -58,7 +58,7 @@ pub fn skip_comments_and_ws(i: &str) -> IResult<&str, ()> {
         input = rest;
         match opt(comment).parse(input) {
             Ok((rest, Some(_))) => input = rest,
-            Ok((rest, None)) => return Ok((input, ())),
+            Ok((_rest, None)) => return Ok((input, ())),
             Err(e) => return Err(e),
         }
     }

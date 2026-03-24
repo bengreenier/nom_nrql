@@ -280,7 +280,7 @@ fn try_online_examples() {
         }
     }
     for (name, query) in EXPECTED_FAILURES {
-        if let Ok(_) = parse_nrql(query) {
+        if parse_nrql(query).is_ok() {
             failed.push((
                 *name,
                 *query,
