@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/bengreenier/nom_nrql/compare/v0.1.1...v0.1.2) - 2026-03-24
+
+### Other
+
+- Fix count(*) parsing for FROM ... SELECT ordering ([#8](https://github.com/bengreenier/nom_nrql/pull/8))
+
 ## [0.1.1](https://github.com/bengreenier/nom_nrql/compare/v0.1.0...v0.1.1) - 2026-03-24
 
 ### Added
